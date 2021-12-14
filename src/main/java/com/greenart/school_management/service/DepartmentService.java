@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.greenart.school_management.data.DepartmentHistoryVO;
 import com.greenart.school_management.data.DepartmentVO;
 import com.greenart.school_management.mapper.DepartmentMapper;
 
@@ -15,13 +16,25 @@ public class DepartmentService {
     @Autowired
     DepartmentMapper mapper;
 
-    public Map<String, Object> getDepartmentList(Integer offset) {
-        if(offset == null) offset = 0;
-
+    public Map<String, Object> getDepartmentList(Integer offset, String keyword) {
         Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
-        List<DepartmentVO> list = mapper.getDepartmentInfo(offset);
+        if(offset == null) {
+            offset = 0;
+            resultMap.put("offset", offset);
+        }
+        if(keyword == null) {
+            keyword = "%%";
+            resultMap.put("keyword", "");
+        }
 
-        Integer cnt = mapper.getDepartmentCount();
+        else{
+            resultMap.put("keyword", keyword);
+            keyword = "%"+keyword+"%";
+        }
+
+        List<DepartmentVO> list = mapper.getDepartmentInfo(offset, keyword);
+
+        Integer cnt = mapper.getDepartmentCount(keyword);
         Integer page_cnt = cnt / 10;
         if(cnt % 10 > 0) page_cnt++;
 
@@ -51,6 +64,17 @@ public class DepartmentService {
         mapper.addDepartment(data);
         resultMap.put("status", true);
         resultMap.put("message", "학과가 추가되었습니다.");
+
+        // 가장 최근에 추가된 학과의 seq 번호 가져오기
+        Integer seq = mapper.selectLatestDateSeq();
+        // add 동작에 대한  History 추가
+        DepartmentHistoryVO history = new DepartmentHistoryVO();
+        history.setDeph_di_seq(seq);
+        history.setDeph_type("new");
+        String content = data.getDi_name()+"|"+data.getDi_graduate_score()+"|"+data.getDi_status();
+        history.setDeph_content(content);
+        mapper.insertDepartmentHistory(history);
+
         return resultMap;
     }
 
@@ -59,6 +83,40 @@ public class DepartmentService {
         mapper.deleteDepartment(seq);
         resultMap.put("status", true);
         resultMap.put("message", "학과가 삭제되었습니다.");
+
+        DepartmentHistoryVO history = new DepartmentHistoryVO();
+        history.setDeph_di_seq(seq);
+        history.setDeph_type("delete");
+        // String content = data.getDi_name()+"|"+data.getDi_graduate_score()+"|"+data.getDi_status();
+        // history.setDeph_content(content);
+        mapper.insertDepartmentHistory(history);
+
+        return resultMap;
+    }
+
+    public Map<String, Object> getDepartmentInfoBySeq(Integer seq) {
+        // return mapper.getDepartmentInfoBySeq(seq);
+        Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
+        resultMap.put("status", true);
+        resultMap.put("data", mapper.getDepartmentInfoBySeq(seq));
+        return resultMap;
+    }
+
+    public Map<String, Object> updateDepartmentInfo(DepartmentVO data) {
+        Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
+
+        mapper.updateDepartment(data);
+
+        resultMap.put("status", true);
+        resultMap.put("message", "수정되었습니다.");
+
+        DepartmentHistoryVO history = new DepartmentHistoryVO();
+        history.setDeph_di_seq(data.getDi_seq());
+        history.setDeph_type("update");
+        String content = data.getDi_name()+"|"+data.getDi_graduate_score()+"|"+data.getDi_status();
+        history.setDeph_content(content);
+        mapper.insertDepartmentHistory(history);
+
         return resultMap;
     }
 }
