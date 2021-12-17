@@ -3,6 +3,7 @@ package com.greenart.school_management.controller;
 import java.util.Map;
 
 import com.greenart.school_management.service.DepartmentService;
+import com.greenart.school_management.utils.AESAlgorithm;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
@@ -19,9 +20,14 @@ public class DepartmentController {
     public String getDepartment(
         Model model, @RequestParam @Nullable Integer offset,
         @RequestParam @Nullable String keyword
-    ) {
+    ) throws Exception {
         Map<String, Object> resultMap = service.getDepartmentList(offset, keyword);
         model.addAttribute("data", resultMap);
+        // ReBaRzwJEjjjhswTTFlP7A== (검색어에 '컴퓨터' 입력 결과)
+        // n7p27PC7Qt41FLApl7jqDQ== (암호화 코드의 키 값을 변경 하고 검색어에 '컴퓨터' 입력 결과)
+        if(keyword != null)
+            System.out.println(AESAlgorithm.Encrypt(keyword));
+
         return "/department/list";
     }
 }
